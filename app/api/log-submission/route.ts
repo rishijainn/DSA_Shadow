@@ -45,12 +45,14 @@ export async function POST(req: NextRequest) {
 
     // 2. FSRS stability boost
     let stabilityBoost = 1.0
-    if (!hint_used) {
-        if (difficulty_feel === 'Easy') stabilityBoost = 1.5
+    if (difficulty_feel === 'Forgot') {
+        stabilityBoost = 0.0 // Will be handled specifically
+    } else if (!hint_used) {
+        if (difficulty_feel === 'Easy') stabilityBoost = 1.6 // Slightly increased for clean solves
         if (difficulty_feel === 'Medium') stabilityBoost = 2.0
         if (difficulty_feel === 'Hard') stabilityBoost = 2.5
     } else {
-        stabilityBoost = 0.5
+        stabilityBoost = 0.6 // Penalty for hints
     }
 
     // 3. Get existing problem score
@@ -61,8 +63,22 @@ export async function POST(req: NextRequest) {
         .eq('problem_id', problem_id)
         .single()
 
-    const newStability = existing ? existing.stability * stabilityBoost : stabilityBoost
-    const daysUntilReview = Math.round(newStability * 1.5)
+    let newStability = 1.0
+    if (difficulty_feel === 'Forgot') {
+        newStability = 1.0 // Total reset
+    } else if (existing) {
+        // Apply consistency penalty: -5% per day overdue
+        const today = new Date()
+        const dueDate = new Date(existing.next_review_date)
+        const daysOverdue = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)))
+        
+        const consistencyPenalty = Math.pow(0.95, daysOverdue)
+        newStability = existing.stability * consistencyPenalty * stabilityBoost
+    } else {
+        newStability = stabilityBoost * 2.0 // Initial stability
+    }
+
+    const daysUntilReview = Math.max(1, Math.round(newStability))
     const nextReview = new Date()
     nextReview.setDate(nextReview.getDate() + daysUntilReview)
 

@@ -64,10 +64,11 @@ function showPopup(problemTitle) {
       </div>
 
       <div style="font-size: 13px; margin-bottom: 8px;">How did it feel?</div>
-      <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-        <button id="diff-easy" style="flex:1; padding: 8px; border-radius: 8px; border: 1px solid #444; background: #313244; color: white; cursor: pointer;">Easy</button>
-        <button id="diff-medium" style="flex:1; padding: 8px; border-radius: 8px; border: 1px solid #444; background: #313244; color: white; cursor: pointer;">Medium</button>
-        <button id="diff-hard" style="flex:1; padding: 8px; border-radius: 8px; border: 1px solid #444; background: #313244; color: white; cursor: pointer;">Hard</button>
+      <div style="display: flex; gap: 4px; margin-bottom: 20px;">
+        <button id="diff-forgot" style="flex:1; padding: 8px 4px; border-radius: 8px; border: 1px solid #444; background: #313244; color: white; cursor: pointer; font-size: 11px;">Forgot</button>
+        <button id="diff-easy" style="flex:1; padding: 8px 4px; border-radius: 8px; border: 1px solid #444; background: #313244; color: white; cursor: pointer; font-size: 11px;">Easy</button>
+        <button id="diff-medium" style="flex:1; padding: 8px 4px; border-radius: 8px; border: 1px solid #444; background: #313244; color: white; cursor: pointer; font-size: 11px;">Med</button>
+        <button id="diff-hard" style="flex:1; padding: 8px 4px; border-radius: 8px; border: 1px solid #444; background: #313244; color: white; cursor: pointer; font-size: 11px;">Hard</button>
       </div>
 
       <button id="dsa-submit-btn" style="
@@ -103,13 +104,19 @@ function showPopup(problemTitle) {
     })
 
         // Difficulty buttons
-        ;['easy', 'medium', 'hard'].forEach(d => {
-            document.getElementById(`diff-${d}`).addEventListener('click', () => {
-                difficulty = d.charAt(0).toUpperCase() + d.slice(1)
-                    ;['easy', 'medium', 'hard'].forEach(x => {
-                        document.getElementById(`diff-${x}`).style.background = x === d ? '#3b82f6' : '#313244'
+        ;['forgot', 'easy', 'medium', 'hard'].forEach(d => {
+            const btn = document.getElementById(`diff-${d}`)
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    difficulty = d.charAt(0).toUpperCase() + d.slice(1)
+                    ;['forgot', 'easy', 'medium', 'hard'].forEach(x => {
+                        const otherBtn = document.getElementById(`diff-${x}`)
+                        if (otherBtn) {
+                            otherBtn.style.background = x === d ? (d === 'forgot' ? '#ef4444' : '#3b82f6') : '#313244'
+                        }
                     })
-            })
+                })
+            }
         })
 
     // Dismiss button

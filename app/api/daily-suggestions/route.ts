@@ -71,8 +71,25 @@ export async function GET(req: NextRequest) {
 
     const rolledOver = unsolved || []
 
-    // Update rolled over status
+    // Update rolled over status and apply neglect penalty
     for (const problem of rolledOver) {
+        // Apply 2% stability penalty for neglecting a suggestion
+        const { data: score } = await supabaseAdmin
+            .from('problem_scores')
+            .select('stability')
+            .eq('user_id', user_id)
+            .eq('problem_id', problem.problem_id)
+            .single()
+
+        if (score) {
+            const newStability = Math.max(1.0, score.stability * 0.98)
+            await supabaseAdmin
+                .from('problem_scores')
+                .update({ stability: newStability })
+                .eq('user_id', user_id)
+                .eq('problem_id', problem.problem_id)
+        }
+
         await supabaseAdmin
             .from('daily_suggestions')
             .update({ status: 'rolled_over', suggested_date: today })
