@@ -9,6 +9,10 @@ chrome.storage.local.get(['dsa_user_id'], (data) => {
     }
 })
 
+document.getElementById('open-dashboard').addEventListener('click', () => {
+    chrome.tabs.create({ url: 'http://localhost:3000/dashboard' })
+})
+
 function openDashboard() {
     chrome.tabs.create({ url: 'http://localhost:3000/dashboard' })
 }

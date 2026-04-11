@@ -1,42 +1,82 @@
 let lastUrl = location.href
+let lastSubmissionId = null
 
-new MutationObserver(() => {
+// === Session Sync Logic ===
+if (location.hostname === 'localhost') {
+    const syncSession = () => {
+        if (!chrome.runtime?.id) return
+        const sessionEl = document.getElementById('dsa-shadow-session')
+        const userId = sessionEl?.getAttribute('data-user-id')
+        if (userId) {
+            chrome.storage.local.set({ dsa_user_id: userId }, () => {
+                if (chrome.runtime.lastError) return
+                console.log('✅ DSA Shadow: Session synced')
+            })
+        }
+    }
+    syncSession()
+    setInterval(syncSession, 5000)
+}
+// ===========================
+
+// Robust Observer: Watches for DOM changes to catch "Accepted" modal regardless of URL
+const observer = new MutationObserver(() => {
     const url = location.href
     if (url !== lastUrl) {
         lastUrl = url
         checkForSubmission()
+    } else {
+        if (!window.submissionCheckTimeout) {
+            window.submissionCheckTimeout = setTimeout(() => {
+                checkForSubmission()
+                window.submissionCheckTimeout = null
+            }, 1500)
+        }
     }
-}).observe(document, { subtree: true, childList: true })
+})
+
+if (document.body) {
+    observer.observe(document.body, { subtree: true, childList: true, characterData: true })
+}
 
 async function checkForSubmission() {
-    if (!location.href.includes('/submissions/')) return
+    const isSubmissionPage = location.href.includes('/submissions/')
+    const isProblemPage = location.href.includes('/problems/')
+    if (!isSubmissionPage && !isProblemPage) return
 
-    setTimeout(async () => {
-        const resultEl = document.querySelector('[data-e2e-locator="submission-result"]')
-        if (resultEl && resultEl.textContent.includes('Accepted')) {
+    const resultEl = 
+        document.querySelector('[data-e2e-locator="submission-result"]') ||
+        document.querySelector('.text-success') || 
+        Array.from(document.querySelectorAll('span, div')).find(el => el.textContent === 'Accepted')
 
-            const urlParts = location.href.split('/problems/')
-            const problemId = urlParts[1]?.split('/')[0] || 'unknown'
+    if (resultEl && resultEl.textContent.includes('Accepted')) {
+        const problemIdMatch = location.href.match(/\/problems\/([^\/]+)/)
+        const problemId = problemIdMatch ? problemIdMatch[1] : 'unknown'
+        
+        const currentCheckId = problemId + '-' + resultEl.textContent.trim()
+        if (lastSubmissionId === currentCheckId) return
+        lastSubmissionId = currentCheckId
 
-            // Try multiple selectors for title
-            const rawTitle =
-                document.querySelector('[data-cy="question-title"]')?.textContent?.trim() ||
-                document.querySelector('.text-title-large a')?.textContent?.trim() ||
-                document.querySelector('a[href*="/problems/"]')?.textContent?.trim() ||
-                document.querySelector('.mr-2.text-label-1')?.textContent?.trim() ||
-                problemId
+        const rawTitle =
+            document.querySelector('[data-cy="question-title"]')?.textContent?.trim() ||
+            document.querySelector('.text-title-large a')?.textContent?.trim() ||
+            document.querySelector('a[href*="/problems/"]:not([href*="/submissions/"])')?.textContent?.trim() ||
+            document.querySelector('.mr-2.text-label-1')?.textContent?.trim() ||
+            document.querySelector('.truncate.text-label-1')?.textContent?.trim() ||
+            problemId
 
-            // Remove number prefix like "3. " or "125. "
-            const problemTitle = rawTitle.replace(/^\d+\.\s*/, '')
-            console.log('DSA Shadow detected:', problemId, problemTitle)
+        const problemTitle = rawTitle.replace(/^\d+\.\s*/, '')
+        console.log('✅ DSA Shadow detected successful submission:', problemId, problemTitle)
 
+        if (chrome.runtime?.id) {
             chrome.storage.local.set({
                 pendingSubmission: { problem_id: problemId, problem_title: problemTitle }
+            }, () => {
+                if (chrome.runtime.lastError) return
+                showPopup(problemTitle)
             })
-
-            showPopup(problemTitle)
         }
-    }, 2000)
+    }
 }
 
 function showPopup(problemTitle) {
@@ -103,21 +143,21 @@ function showPopup(problemTitle) {
         document.getElementById('hint-no').style.background = '#3b82f6'
     })
 
-        // Difficulty buttons
-        ;['forgot', 'easy', 'medium', 'hard'].forEach(d => {
-            const btn = document.getElementById(`diff-${d}`)
-            if (btn) {
-                btn.addEventListener('click', () => {
-                    difficulty = d.charAt(0).toUpperCase() + d.slice(1)
-                    ;['forgot', 'easy', 'medium', 'hard'].forEach(x => {
-                        const otherBtn = document.getElementById(`diff-${x}`)
-                        if (otherBtn) {
-                            otherBtn.style.background = x === d ? (d === 'forgot' ? '#ef4444' : '#3b82f6') : '#313244'
-                        }
-                    })
+    // Difficulty buttons
+    ;['forgot', 'easy', 'medium', 'hard'].forEach(d => {
+        const btn = document.getElementById(`diff-${d}`)
+        if (btn) {
+            btn.addEventListener('click', () => {
+                difficulty = d.charAt(0).toUpperCase() + d.slice(1)
+                ;['forgot', 'easy', 'medium', 'hard'].forEach(x => {
+                    const otherBtn = document.getElementById(`diff-${x}`)
+                    if (otherBtn) {
+                        otherBtn.style.background = x === d ? (d === 'forgot' ? '#ef4444' : '#3b82f6') : '#313244'
+                    }
                 })
-            }
-        })
+            })
+        }
+    })
 
     // Dismiss button
     document.getElementById('dsa-dismiss-btn').addEventListener('click', () => {
@@ -133,7 +173,7 @@ function showPopup(problemTitle) {
 
         chrome.storage.local.get(['dsa_user_id', 'pendingSubmission'], async (data) => {
             if (!data.dsa_user_id) {
-                alert('Please sign in at dsashadow.com first!')
+                alert('Please sign in at localhost:3000 first!')
                 return
             }
 
@@ -152,7 +192,6 @@ function showPopup(problemTitle) {
 
                 const result = await res.json()
                 if (result.success) {
-                    // Mark as complete in daily suggestions
                     await fetch('http://localhost:3000/api/mark-complete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

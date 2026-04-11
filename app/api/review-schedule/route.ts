@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
             ? Math.round((p.hint_count / p.total_solved) * 100)
             : 0
 
-        return {
+    return {
             problem_id: p.problem_id,
             problem_title: p.problem_title,
             stability: Math.round(p.stability * 10) / 10,
@@ -59,8 +59,19 @@ export async function GET(req: NextRequest) {
         }
     })
 
+    // Get submissions from today
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+    const { data: solvedToday } = await supabaseAdmin
+        .from('submissions')
+        .select('*')
+        .eq('user_id', user_id)
+        .gte('created_at', startOfToday.toISOString())
+        .order('created_at', { ascending: false })
+
     return NextResponse.json({
         due_today: dueProblems?.length || 0,
+        solved_today: solvedToday || [],
         problems_due: problemsWithR?.filter(p => p.is_due) || [],
         all_problems: problemsWithR || []
     })

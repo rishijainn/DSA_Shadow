@@ -15,6 +15,14 @@
             "js": [
                 "content.js"
             ]
+        },
+        {
+            "matches": [
+                "http://localhost:3000/*"
+            ],
+            "js": [
+                "content.js"
+            ]
         }
     ],
     "action": {
