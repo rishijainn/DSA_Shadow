@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* DARK THEME LOCKED (Kinetic Aesthetic) */
+  --bg-base: #101010;
+  --bg-surface: #151515;
+  --bg-surface-hover: #1a1a1a;
+  
+  --text-main: #e2e8f0;
+  --text-muted: #828282;
+  --border-subtle: #262626;
+  
+  --primary: #2fe0eb; /* Cyan */
+  --accent-orange: #ff9900;
+  --accent-green: #2ecc71;
+  --accent-red: #e74c3c;
+  --accent-yellow: #f1c40f;
+
+  /* Card specific */
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-surface-hover: var(--bg-surface-hover);
+  --color-foreground: var(--text-main);
+  --color-muted: var(--text-muted);
+  --color-border: var(--border-subtle);
+  
+  --color-primary: var(--primary);
+  --color-orange: var(--accent-orange);
+  --color-green: var(--accent-green);
+  --color-red: var(--accent-red);
+  --color-yellow: var(--accent-yellow);
+  
+  --shadow-card: var(--card-shadow);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Base Inputs */
+input, button {
+  outline: none;
 }

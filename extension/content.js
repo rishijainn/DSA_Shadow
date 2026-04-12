@@ -1,5 +1,15 @@
 let lastUrl = location.href
 let lastSubmissionId = null
+let submissionInProgress = false
+
+// Track clicks on the Submit button
+document.addEventListener('click', (e) => {
+    const submitBtn = e.target.closest('[data-e2e-locator="console-submit-button"]')
+    if (submitBtn) {
+        submissionInProgress = true
+        console.log('🚀 DSA Shadow: Submission initiated')
+    }
+})
 
 // === Session Sync Logic ===
 if (location.hostname === 'localhost') {
@@ -40,42 +50,66 @@ if (document.body) {
 }
 
 async function checkForSubmission() {
+    // 1. Must be a result area that just appeared or updated
     const isSubmissionPage = location.href.includes('/submissions/')
-    const isProblemPage = location.href.includes('/problems/')
-    if (!isSubmissionPage && !isProblemPage) return
-
+    const hasIntent = submissionInProgress || isSubmissionPage
+    
+    // 2. Stronger result detection
     const resultEl = 
         document.querySelector('[data-e2e-locator="submission-result"]') ||
-        document.querySelector('.text-success') || 
-        Array.from(document.querySelectorAll('span, div')).find(el => el.textContent === 'Accepted')
-
-    if (resultEl && resultEl.textContent.includes('Accepted')) {
-        const problemIdMatch = location.href.match(/\/problems\/([^\/]+)/)
-        const problemId = problemIdMatch ? problemIdMatch[1] : 'unknown'
+        document.querySelector('.text-success.text-title-medium') // New UI specific
         
-        const currentCheckId = problemId + '-' + resultEl.textContent.trim()
-        if (lastSubmissionId === currentCheckId) return
+    if (!resultEl || !resultEl.textContent.includes('Accepted')) return
+
+    const problemIdMatch = location.href.match(/\/problems\/([^\/]+)/)
+    const problemId = problemIdMatch ? problemIdMatch[1] : 'unknown'
+    
+    const currentCheckId = problemId + '-' + resultEl.textContent.trim()
+    
+    // If we haven't see a submission intent yet AND we just loaded the page, 
+    // initialize lastSubmissionId to prevent immediate popup.
+    if (lastSubmissionId === null && !submissionInProgress && !isSubmissionPage) {
         lastSubmissionId = currentCheckId
+        return
+    }
 
-        const rawTitle =
-            document.querySelector('[data-cy="question-title"]')?.textContent?.trim() ||
-            document.querySelector('.text-title-large a')?.textContent?.trim() ||
-            document.querySelector('a[href*="/problems/"]:not([href*="/submissions/"])')?.textContent?.trim() ||
-            document.querySelector('.mr-2.text-label-1')?.textContent?.trim() ||
-            document.querySelector('.truncate.text-label-1')?.textContent?.trim() ||
-            problemId
+    if (lastSubmissionId === currentCheckId) return
+    
+    // Only trigger if we had intent or the URL is a specific submission result
+    if (!hasIntent) return
 
-        const problemTitle = rawTitle.replace(/^\d+\.\s*/, '')
-        console.log('✅ DSA Shadow detected successful submission:', problemId, problemTitle)
+    lastSubmissionId = currentCheckId
+    submissionInProgress = false // Reset intent
 
-        if (chrome.runtime?.id) {
-            chrome.storage.local.set({
-                pendingSubmission: { problem_id: problemId, problem_title: problemTitle }
-            }, () => {
-                if (chrome.runtime.lastError) return
-                showPopup(problemTitle)
-            })
-        }
+    const titleize = (slug) => {
+        return slug
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ')
+    }
+
+    const rawTitle =
+        document.querySelector('[data-cy="question-title"]')?.textContent?.trim() ||
+        document.querySelector('.text-title-large')?.textContent?.trim() ||
+        document.querySelector('h4.text-label-1')?.textContent?.trim() || 
+        document.querySelector('.mr-2.text-title-large')?.textContent?.trim() ||
+        problemId
+
+    let problemTitle = rawTitle.replace(/^\d+\.\s*/, '')
+    
+    // Validation: If title is just a number or too short, use titleized problemId
+    if (problemTitle === "0" || !isNaN(problemTitle) || problemTitle.length < 2) {
+        problemTitle = titleize(problemId)
+    }
+    console.log('✅ DSA Shadow detected successful submission:', problemId, problemTitle)
+
+    if (chrome.runtime?.id) {
+        chrome.storage.local.set({
+            pendingSubmission: { problem_id: problemId, problem_title: problemTitle }
+        }, () => {
+            if (chrome.runtime.lastError) return
+            showPopup(problemTitle)
+        })
     }
 }
 

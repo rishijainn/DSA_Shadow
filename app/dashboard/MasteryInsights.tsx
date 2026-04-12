@@ -37,9 +37,9 @@ export default function MasteryInsights({ userId }: { userId: string }) {
     )
 
     if (stats.length === 0) return (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-12 text-center">
-            <h3 className="text-lg font-bold text-white mb-2">No topic data yet</h3>
-            <p className="text-gray-400 text-sm">Solve a few problems on LeetCode to see your mastery profile.</p>
+        <div className="bg-surface border border-border rounded-2xl p-12 text-center shadow-sm">
+            <h3 className="text-lg font-bold text-foreground mb-2">No topic data yet</h3>
+            <p className="text-muted text-sm">Solve a few problems on LeetCode to see your mastery profile.</p>
         </div>
     )
 
@@ -64,10 +64,10 @@ export default function MasteryInsights({ userId }: { userId: string }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
                 {/* Radar Profile */}
-                <div className="bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-6">
+                <div className="bg-surface backdrop-blur-xl border border-border rounded-2xl p-6 shadow-card">
                     <div className="flex items-center gap-2 mb-6">
-                        <Brain className="w-5 h-5 text-blue-400" />
-                        <h2 className="text-lg font-bold">Concept Profile</h2>
+                        <Brain className="w-5 h-5 text-primary" />
+                        <h2 className="text-lg font-bold text-foreground">Topic Strengths</h2>
                     </div>
                     <div className="h-64 w-full">
                         {mounted && (
@@ -76,7 +76,7 @@ export default function MasteryInsights({ userId }: { userId: string }) {
                                     <PolarGrid stroke="#333" />
                                     <PolarAngleAxis dataKey="subject" tick={{ fill: '#999', fontSize: 10 }} />
                                     <Radar
-                                        name="Mastery"
+                                        name="Strength"
                                         dataKey="A"
                                         stroke="#3b82f6"
                                         fill="#3b82f6"
@@ -89,24 +89,24 @@ export default function MasteryInsights({ userId }: { userId: string }) {
                 </div>
 
                 {/* Weakness Analysis */}
-                <div className="bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-2xl p-6">
+                <div className="bg-surface backdrop-blur-xl border border-border rounded-2xl p-6 shadow-card">
                     <div className="flex items-center gap-2 mb-6">
                         <Flame className="w-5 h-5 text-orange-500" />
-                        <h2 className="text-lg font-bold">Critical Weaknesses</h2>
+                        <h2 className="text-lg font-bold text-foreground">Needs Practice</h2>
                     </div>
                     <div className="space-y-4">
                         {weakestTopics.map(topic => (
                             <div key={topic.topic} className="group">
                                 <div className="flex justify-between items-end mb-2">
                                     <div>
-                                        <div className="text-sm font-semibold text-white group-hover:text-orange-400 transition">{topic.topic}</div>
-                                        <div className="text-[10px] text-gray-500">{topic.problem_count} problems tracked</div>
+                                        <div className="text-sm font-semibold text-foreground group-hover:text-orange-400 transition">{topic.topic}</div>
+                                        <div className="text-[10px] text-muted">{topic.problem_count} problems tracked</div>
                                     </div>
-                                    <div className={`text-sm font-bold ${topic.avg_retrievability < 50 ? 'text-red-500' : 'text-orange-500'}`}>
-                                        {topic.avg_retrievability}% Recall
+                                    <div className={`text-sm font-bold ${topic.avg_retrievability < 50 ? 'text-error' : 'text-orange-500'}`}>
+                                        {topic.avg_retrievability}% Strong
                                     </div>
                                 </div>
-                                <div className="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                                <div className="w-full bg-border h-2 rounded-full overflow-hidden">
                                     <div 
                                         className={`h-full transition-all duration-1000 ${
                                             topic.avg_retrievability < 50 ? 'bg-gradient-to-r from-red-600 to-orange-500' : 'bg-orange-500'
@@ -115,9 +115,9 @@ export default function MasteryInsights({ userId }: { userId: string }) {
                                     />
                                 </div>
                                 {topic.avg_retrievability < 40 && (
-                                    <div className="mt-2 flex items-center gap-1.5 text-[10px] text-red-400 animate-pulse">
+                                    <div className="mt-2 flex items-center gap-1.5 text-[10px] text-error animate-pulse">
                                         <AlertTriangle className="w-3 h-3" />
-                                        <span>High priority: solve a problem in this topic today.</span>
+                                        <span>Great time to review this topic!</span>
                                     </div>
                                 )}
                             </div>
@@ -127,40 +127,40 @@ export default function MasteryInsights({ userId }: { userId: string }) {
             </div>
 
             {/* Detailed Mastery Table */}
-            <div className="bg-gray-900/50 backdrop-blur-xl border border-gray-800 rounded-2xl overflow-hidden">
-                <div className="p-6 border-b border-gray-800 flex justify-between items-center">
+            <div className="bg-surface backdrop-blur-xl border border-border rounded-2xl overflow-hidden shadow-card">
+                <div className="p-6 border-b border-border flex justify-between items-center bg-surface">
                     <div className="flex items-center gap-2">
-                        <Target className="w-5 h-5 text-green-400" />
-                        <h2 className="text-lg font-bold">Topic Breakdown</h2>
+                        <Target className="w-5 h-5 text-success" />
+                        <h2 className="text-lg font-bold text-foreground">Progress Breakdown</h2>
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="text-xs text-gray-500 border-b border-gray-800">
+                            <tr className="text-xs text-muted border-b border-border">
                                 <th className="px-6 py-4 font-medium uppercase tracking-wider">Topic</th>
-                                <th className="px-6 py-4 font-medium uppercase tracking-wider">Mastery</th>
-                                <th className="px-6 py-4 font-medium uppercase tracking-wider">Stability</th>
-                                <th className="px-6 py-4 font-medium uppercase tracking-wider">Distribution</th>
+                                <th className="px-6 py-4 font-medium uppercase tracking-wider">Strength</th>
+                                <th className="px-6 py-4 font-medium uppercase tracking-wider">Retention</th>
+                                <th className="px-6 py-4 font-medium uppercase tracking-wider">Difficulty Spread</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-800/50">
+                        <tbody className="divide-y divide-border">
                             {[...stats].sort((a, b) => b.problem_count - a.problem_count).map(topic => (
-                                <tr key={topic.topic} className="hover:bg-gray-800/20 transition group">
+                                <tr key={topic.topic} className="hover:bg-primary/5 transition group">
                                     <td className="px-6 py-4">
-                                        <div className="font-semibold text-white group-hover:text-blue-400 transition">{topic.topic}</div>
-                                        <div className="text-[10px] text-gray-500">{topic.problem_count} solved</div>
+                                        <div className="font-semibold text-foreground group-hover:text-primary transition">{topic.topic}</div>
+                                        <div className="text-[10px] text-muted">{topic.problem_count} solved</div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-16 bg-gray-800 h-1.5 rounded-full">
-                                                <div className="bg-blue-500 h-full rounded-full" style={{ width: `${topic.avg_retrievability}%` }} />
+                                            <div className="w-16 bg-border h-1.5 rounded-full overflow-hidden">
+                                                <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${topic.avg_retrievability}%` }} />
                                             </div>
-                                            <span className="text-sm font-mono">{topic.avg_retrievability}%</span>
+                                            <span className="text-sm font-mono text-foreground">{topic.avg_retrievability}%</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-gray-300">
-                                        {topic.avg_stability}d
+                                    <td className="px-6 py-4 text-sm text-foreground/80">
+                                        {topic.avg_stability} days
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex gap-1">
