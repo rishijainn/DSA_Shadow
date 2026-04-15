@@ -10,21 +10,23 @@ export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url)
         const user_id = searchParams.get('user_id')
+        const limitParam = searchParams.get('limit')
+        const limit = limitParam ? Math.min(parseInt(limitParam), 500) : 200
 
         if (!user_id) {
             return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
         }
 
-        // STEP 1: Try selecting without ordering to find if created_at is the issue
         const { data: submissions, error } = await supabaseAdmin
             .from('submissions')
             .select('*')
             .eq('user_id', user_id)
-            .limit(10)
+            .order('timestamp', { ascending: false })
+            .limit(limit)
 
         if (error) {
             console.error('Supabase error:', error)
-            return NextResponse.json({ 
+            return NextResponse.json({
                 error: error.message,
                 hint: error.hint,
                 details: error.details

@@ -8,7 +8,7 @@ interface Submission {
     problem_title: string
     hint_used: boolean
     difficulty_feel: string
-    created_at: string
+    timestamp: string
 }
 
 export default function SolvedVault({ userId }: { userId: string }) {
@@ -71,7 +71,7 @@ export default function SolvedVault({ userId }: { userId: string }) {
                     { label: 'Total Solved', value: submissions.length, icon: Award, color: 'text-yellow-400' },
                     { label: 'Clean Solves', value: submissions.filter(s => !s.hint_used).length, icon: Brain, color: 'text-green-400' },
                     { label: 'Hard Challenges', value: submissions.filter(s => s.difficulty_feel === 'Hard').length, icon: Filter, color: 'text-red-400' },
-                    { label: 'This Month', value: submissions.filter(s => new Date(s.created_at).getMonth() === new Date().getMonth()).length, icon: Calendar, color: 'text-blue-400' }
+                    { label: 'This Month', value: submissions.filter(s => new Date(s.timestamp).getMonth() === new Date().getMonth()).length, icon: Calendar, color: 'text-blue-400' }
                 ].map((stat, i) => (
                     <div key={i} className="bg-surface border border-border rounded-2xl p-4 shadow-sm">
                         <div className="flex items-center gap-2 mb-1">
@@ -113,11 +113,11 @@ export default function SolvedVault({ userId }: { userId: string }) {
                                 <div className="flex items-center gap-4 mt-2">
                                     <div className="flex items-center gap-1.5 text-xs text-muted">
                                         <Calendar className="w-3 h-3" />
-                                        {new Date(sub.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        {new Date(sub.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                     </div>
                                     <div className="flex items-center gap-1.5 text-xs text-muted">
                                         <History className="w-3 h-3" />
-                                        {new Date(sub.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {new Date(sub.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </div>
                             </div>

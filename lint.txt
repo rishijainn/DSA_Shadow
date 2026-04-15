@@ -1,0 +1,130 @@
+
+> dsa-shadow@0.1.0 lint
+> eslint
+
+
+/Users/rishijain/dsa-shadow/app/api/onboarding/route.ts
+  43:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/rishijain/dsa-shadow/app/api/problems/route.ts
+  54:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/rishijain/dsa-shadow/app/api/submissions/route.ts
+  35:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/rishijain/dsa-shadow/app/api/topic-mastery/route.ts
+  43:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/rishijain/dsa-shadow/app/components/ThemeProvider.tsx
+  20:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/rishijain/dsa-shadow/app/components/ThemeProvider.tsx:20:13
+  18 |         const storedTheme = localStorage.getItem('dsa-theme') as Theme | null
+  19 |         if (storedTheme) {
+> 20 |             setTheme(storedTheme)
+     |             ^^^^^^^^ Avoid calling setState() directly within an effect
+  21 |         } else {
+  22 |             // Default to dark if user prefers it
+  23 |             if (window.matchMedia('(prefers-color-scheme: dark)').matches) {  react-hooks/set-state-in-effect
+
+/Users/rishijain/dsa-shadow/app/dashboard/Heatmap.tsx
+  15:11  warning  'weeks' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  15:19  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This value was memoized in source but not in compilation output.
+
+/Users/rishijain/dsa-shadow/app/dashboard/Heatmap.tsx:15:19
+  13 |     // Generate dates for the last 12 weeks
+  14 |     const today = new Date()
+> 15 |     const weeks = useMemo(() => {
+     |                   ^^^^^^^^^^^^^^^
+> 16 |         const result = []
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 17 |         let currentDay = new Date(today)
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 38 |         return result
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 39 |     }, [activity])
+     | ^^^^^^^^^^^^^^^^^^^ Could not preserve existing memoization
+  40 |
+  41 |     // Redo logic to go back 20 weeks and iterate forward
+  42 |     const weeksCorrect = useMemo(() => {  react-hooks/preserve-manual-memoization
+  17:13  error    'currentDay' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       prefer-const
+  39:8   warning  React Hook useMemo has a missing dependency: 'today'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  48:13  error    'tempDate' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         prefer-const
+  65:8   warning  React Hook useMemo has a missing dependency: 'today'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  90:41  warning  'di' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+
+/Users/rishijain/dsa-shadow/app/dashboard/MasteryInsights.tsx
+   5:5   warning  'BarChart' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   5:15  warning  'Bar' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   5:20  warning  'XAxis' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   5:27  warning  'YAxis' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   5:34  warning  'Tooltip' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   5:43  warning  'Cell' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   7:32  warning  'TrendingUp' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  23:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/rishijain/dsa-shadow/app/dashboard/MasteryInsights.tsx:23:9
+  21 |
+  22 |     useEffect(() => {
+> 23 |         setMounted(true)
+     |         ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  24 |         const fetchStats = async () => {
+  25 |             const res = await fetch(`/api/topic-mastery?user_id=${userId}`)
+  26 |             const data = await res.json()  react-hooks/set-state-in-effect
+
+/Users/rishijain/dsa-shadow/app/dashboard/Overview.tsx
+   4:31  warning  'GitCommit' is defined but never used         @typescript-eslint/no-unused-vars
+   4:42  warning  'CheckCircle2' is defined but never used      @typescript-eslint/no-unused-vars
+   4:56  warning  'RefreshCw' is defined but never used         @typescript-eslint/no-unused-vars
+  28:46  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  29:12  warning  'loading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/rishijain/dsa-shadow/app/dashboard/ProblemExplorer.tsx
+  16:43  warning  'userId' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/rishijain/dsa-shadow/app/dashboard/SolvedVault.tsx
+  50:70  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/rishijain/dsa-shadow/app/dashboard/page.tsx
+  23:38  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  26:12  warning  'solvedToday' is assigned a value but never used                                                           @typescript-eslint/no-unused-vars
+  26:52  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+  46:8   warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  79:72  error    Unexpected any. Specify a different type                                                                   @typescript-eslint/no-explicit-any
+
+/Users/rishijain/dsa-shadow/app/login/page.tsx
+  56:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/rishijain/dsa-shadow/app/onboarding/page.tsx
+    2:20   warning  'useEffect' is defined but never used                            @typescript-eslint/no-unused-vars
+   70:69   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  101:119  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  127:69   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  127:105  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  127:120  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/rishijain/dsa-shadow/extension/popup.js
+  16:10  warning  'openDashboard' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/rishijain/dsa-shadow/scratch/test_db.js
+  1:26  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  2:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 42 problems (22 errors, 20 warnings)
+  2 errors and 0 warnings potentially fixable with the `--fix` option.
+

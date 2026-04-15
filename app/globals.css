@@ -2,22 +2,22 @@
 
 :root {
   /* DARK THEME LOCKED (Kinetic Aesthetic) */
-  --bg-base: #101010;
-  --bg-surface: #151515;
-  --bg-surface-hover: #1a1a1a;
-  
+  --bg-base: #0a0a0a;
+  --bg-surface: #111111;
+  --bg-surface-hover: #151515;
+
   --text-main: #e2e8f0;
-  --text-muted: #828282;
-  --border-subtle: #262626;
-  
-  --primary: #2fe0eb; /* Cyan */
+  --text-muted: #555555;
+  --border-subtle: #1e1e1e;
+
+  --primary: #2fe0eb;       /* Cyan */
   --accent-orange: #ff9900;
   --accent-green: #2ecc71;
   --accent-red: #e74c3c;
   --accent-yellow: #f1c40f;
 
   /* Card specific */
-  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {
@@ -27,13 +27,13 @@
   --color-foreground: var(--text-main);
   --color-muted: var(--text-muted);
   --color-border: var(--border-subtle);
-  
+
   --color-primary: var(--primary);
   --color-orange: var(--accent-orange);
   --color-green: var(--accent-green);
   --color-red: var(--accent-red);
   --color-yellow: var(--accent-yellow);
-  
+
   --shadow-card: var(--card-shadow);
 
   --font-sans: var(--font-geist-sans);
@@ -48,8 +48,8 @@ body {
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -62,7 +62,28 @@ body {
   background: var(--color-primary);
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Base Inputs */
-input, button {
+input,
+button {
   outline: none;
+}
+
+/* Smooth focus transitions */
+input:focus {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(47, 224, 235, 0.2);
+  color: #e2e8f0;
 }

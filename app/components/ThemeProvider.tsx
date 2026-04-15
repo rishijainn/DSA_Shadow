@@ -1,7 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
 
-type Theme = 'light' | 'dark'
+type Theme = 'dark'
 
 interface ThemeContextType {
     theme: Theme
@@ -11,33 +11,15 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setTheme] = useState<Theme>('light') // default to light
+    const [theme] = useState<Theme>('dark')
 
     useEffect(() => {
-        // Only run on client
-        const storedTheme = localStorage.getItem('dsa-theme') as Theme | null
-        if (storedTheme) {
-            setTheme(storedTheme)
-        } else {
-            // Default to dark if user prefers it
-            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                setTheme('dark')
-            }
-        }
+        // Always enforce dark mode — the app is dark-only
+        document.documentElement.classList.add('dark')
     }, [])
 
-    useEffect(() => {
-        const root = document.documentElement
-        if (theme === 'dark') {
-            root.classList.add('dark')
-        } else {
-            root.classList.remove('dark')
-        }
-        localStorage.setItem('dsa-theme', theme)
-    }, [theme])
-
     const toggleTheme = () => {
-        setTheme(prev => prev === 'light' ? 'dark' : 'light')
+        // No-op: app is dark-only
     }
 
     return (
