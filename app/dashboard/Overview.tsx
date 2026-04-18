@@ -224,18 +224,23 @@ export default function Overview({
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <button 
-                                            onClick={(e) => handleSkip(e, p.problem_id)}
-                                            disabled={skippingId === p.problem_id}
-                                            title="Skip & Penalize for today"
-                                            className="p-1.5 rounded-md hover:bg-red-500/10 group-hover:opacity-100 opacity-0 transition-all text-[#555] hover:text-red-400 disabled:opacity-50"
-                                        >
-                                            {skippingId === p.problem_id ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <FastForward className="w-4 h-4" />
-                                            )}
-                                        </button>
+                                        <div className="relative group/skip">
+                                            <button 
+                                                onClick={(e) => handleSkip(e, p.problem_id)}
+                                                disabled={skippingId === p.problem_id}
+                                                className="p-1.5 rounded-md hover:bg-red-500/10 group-hover:opacity-100 opacity-0 transition-all text-[#555] hover:text-red-400 disabled:opacity-50"
+                                            >
+                                                {skippingId === p.problem_id ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <FastForward className="w-4 h-4" />
+                                                )}
+                                            </button>
+                                            <div className="absolute right-1/2 translate-x-1/2 bottom-full mb-1 px-3 py-2 w-48 bg-[#1a0f0f] text-red-400 text-[10px] rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)] opacity-0 pointer-events-none group-hover/skip:opacity-100 transition-opacity border border-red-900/40 z-50 text-center flex flex-col gap-1">
+                                                <span className="font-bold uppercase tracking-wider text-red-400">Skip Review</span>
+                                                <span className="text-[#999] font-normal leading-relaxed text-[9px]">Postpones this question to tomorrow, but <span className="text-red-400">reduces the overall strength</span> of this topic.</span>
+                                            </div>
+                                        </div>
                                         <Play className="w-4 h-4 text-[#2fe0eb]/50 opacity-0 group-hover:opacity-100 group-hover:text-[#2fe0eb] transition-all ml-1 flex-shrink-0" />
                                     </div>
                                 </div>
