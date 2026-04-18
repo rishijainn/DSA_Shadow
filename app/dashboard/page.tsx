@@ -6,7 +6,7 @@ import ProblemExplorer from './ProblemExplorer'
 import MasteryInsights from './MasteryInsights'
 import SolvedVault from './SolvedVault'
 import Overview from './Overview'
-import { LayoutDashboard, Library, Settings, RefreshCw, User, FileText, LogOut, CheckCircle2, Loader2 } from 'lucide-react'
+import { LayoutDashboard, Library, RefreshCw, User, FileText, LogOut, Loader2, Brain, History } from 'lucide-react'
 
 interface ProblemScore {
     problem_id: string
@@ -87,8 +87,8 @@ export default function Dashboard() {
                         {[
                             { id: 'overview', icon: LayoutDashboard, label: 'Dashboard' },
                             { id: 'explore', icon: Library, label: 'Library' },
-                            { id: 'vault', icon: CheckCircle2, label: 'Vault' },
-                            { id: 'insights', icon: Settings, label: 'Config' }
+                            { id: 'vault', icon: History, label: 'History' },
+                            { id: 'insights', icon: Brain, label: 'Insights' }
                         ].map(item => (
                             <button
                                 key={item.id}
