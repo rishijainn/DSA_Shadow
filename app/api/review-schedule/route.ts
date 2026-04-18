@@ -17,6 +17,14 @@ export async function GET(req: NextRequest) {
     const today = new Date().toISOString().split('T')[0]
     const todayDate = new Date()
 
+    const { data: settings } = await supabaseAdmin
+        .from('user_settings')
+        .select('daily_commitment')
+        .eq('id', user_id)
+        .single()
+    
+    const commitment = settings?.daily_commitment || 3
+
     // Get problems due for review today
     const { data: dueProblems, error } = await supabaseAdmin
         .from('problem_scores')
@@ -24,6 +32,7 @@ export async function GET(req: NextRequest) {
         .eq('user_id', user_id)
         .lte('next_review_date', today)
         .order('next_review_date', { ascending: true })
+        .limit(commitment)
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
@@ -69,10 +78,13 @@ export async function GET(req: NextRequest) {
         .gte('created_at', startOfToday.toISOString())
         .order('created_at', { ascending: false })
 
+    // We only return the ones explicitly fetched in `dueProblems` to enforce the rollover cap.
+    const validDueIds = new Set(dueProblems?.map(d => d.problem_id) || [])
+
     return NextResponse.json({
         due_today: dueProblems?.length || 0,
         solved_today: solvedToday || [],
-        problems_due: problemsWithR?.filter(p => p.is_due) || [],
+        problems_due: problemsWithR?.filter(p => validDueIds.has(p.problem_id)) || [],
         all_problems: problemsWithR || []
     })
 }

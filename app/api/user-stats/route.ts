@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { calculateTrueStreak } from '@/lib/streak'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,37 +34,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Get current streak from the latest entry
-    const latest = activity?.[activity.length - 1]
     let currentStreak = 0
-    
-    if (latest) {
-        const client_date = searchParams.get('client_date')
-        let todayDate = new Date()
-        if (client_date) {
-            todayDate = new Date(client_date + 'T12:00:00Z')
-        }
-        
-        const todayStr = client_date || todayDate.toISOString().split('T')[0]
-        
-        const yesterday = new Date(todayDate)
-        yesterday.setDate(yesterday.getDate() - 1)
-        const yesterdayStr = yesterday.toISOString().split('T')[0]
-
-        if (latest.date === todayStr) {
-            currentStreak = latest.streak
-            // If they started today but haven't finished (streak is 0 currently), show yesterday's streak
-            if (currentStreak === 0) {
-                const yesterdayAct = activity.find((a: any) => a.date === yesterdayStr)
-                if (yesterdayAct) {
-                    currentStreak = yesterdayAct.streak
-                }
-            }
-        } else if (latest.date === yesterdayStr) {
-            // Note: If they haven't solved anything today, the streak from yesterday is still valid
-            // for display purposes, but today's entry hasn't been created yet.
-            currentStreak = latest.streak
-        }
+    let todayDate = new Date()
+    const client_date = searchParams.get('client_date')
+    if (client_date) {
+        todayDate = new Date(client_date + 'T12:00:00Z')
     }
+    const targetDateStr = client_date || todayDate.toISOString().split('T')[0]
+
+    // Calculate true streak, skipping days where 0 reviews were due
+    currentStreak = await calculateTrueStreak(user_id, targetDateStr)
 
     // Process activity into statuses for the heatmap
     const processedActivity = activity?.map(day => {

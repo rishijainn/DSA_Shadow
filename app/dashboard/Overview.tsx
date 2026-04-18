@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { BarChart, Bar, ResponsiveContainer, XAxis, Tooltip, Cell } from 'recharts'
-import { CalendarCheck, Play, RefreshCw } from 'lucide-react'
+import { CalendarCheck, Play, RefreshCw, FastForward, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import Heatmap from './Heatmap'
 
 interface ProblemScore {
@@ -27,6 +28,8 @@ export default function Overview({
     const [streak, setStreak] = useState(0)
     const [activity, setActivity] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [skippingId, setSkippingId] = useState<string | null>(null)
+    const router = useRouter()
 
     const fetchStats = async () => {
         if (!userId) return
@@ -69,6 +72,25 @@ export default function Overview({
         if (char === 0) return { label: 'Hard', color: 'text-red-400 border-red-500/40 bg-red-500/10' }
         if (char === 1) return { label: 'Medium', color: 'text-orange-400 border-orange-400/40 bg-orange-400/10' }
         return { label: 'Easy', color: 'text-green-400 border-green-500/40 bg-green-500/10' }
+    }
+
+    const handleSkip = async (e: React.MouseEvent, problemId: string) => {
+        e.stopPropagation()
+        if (!userId) return
+        
+        setSkippingId(problemId)
+        try {
+            await fetch('/api/skip-review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, problem_id: problemId })
+            })
+            // Quick reload to sync all components including parent state
+            window.location.reload()
+        } catch (err) {
+            console.error('Failed to skip:', err)
+            setSkippingId(null)
+        }
     }
 
     return (
@@ -182,7 +204,7 @@ export default function Overview({
                             return (
                                 <div
                                     key={p.problem_id}
-                                    className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-lg p-4 flex items-center gap-4 hover:border-[#2fe0eb]/20 transition-all group cursor-pointer"
+                                    className="bg-[#0e0e0e] border border-[#1e1e1e] rounded-lg p-4 flex items-center gap-4 hover:border-[#2fe0eb]/20 transition-all group cursor-pointer relative"
                                     onClick={() => window.open(`https://leetcode.com/problems/${p.problem_id}`, '_blank')}
                                 >
                                     <div className="w-9 h-9 bg-[#151515] border border-[#2a2a2a] rounded-lg flex items-center justify-center flex-shrink-0">
@@ -201,7 +223,21 @@ export default function Overview({
                                             </span>
                                         </div>
                                     </div>
-                                    <Play className="w-4 h-4 text-[#2fe0eb]/50 opacity-0 group-hover:opacity-100 group-hover:text-[#2fe0eb] transition-all ml-1 flex-shrink-0" />
+                                    <div className="flex items-center gap-1">
+                                        <button 
+                                            onClick={(e) => handleSkip(e, p.problem_id)}
+                                            disabled={skippingId === p.problem_id}
+                                            title="Skip & Penalize for today"
+                                            className="p-1.5 rounded-md hover:bg-red-500/10 group-hover:opacity-100 opacity-0 transition-all text-[#555] hover:text-red-400 disabled:opacity-50"
+                                        >
+                                            {skippingId === p.problem_id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <FastForward className="w-4 h-4" />
+                                            )}
+                                        </button>
+                                        <Play className="w-4 h-4 text-[#2fe0eb]/50 opacity-0 group-hover:opacity-100 group-hover:text-[#2fe0eb] transition-all ml-1 flex-shrink-0" />
+                                    </div>
                                 </div>
                             )
                         }) : (

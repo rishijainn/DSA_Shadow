@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { calculateTrueStreak } from '@/lib/streak'
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -123,12 +124,22 @@ export async function POST(req: NextRequest) {
         .single()
 
     if (!todaySummary) {
+        // Get user setting limit
+        const { data: settings } = await supabaseAdmin
+            .from('user_settings')
+            .select('daily_commitment')
+            .eq('id', user_id)
+            .single()
+        const commitment = settings?.daily_commitment || 3
+
         // Calculate reviews due for the day at the moment of first activity
-        const { count: currentlyDue } = await supabaseAdmin
+        const { count: currentlyDueRaw } = await supabaseAdmin
             .from('problem_scores')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user_id)
             .lte('next_review_date', todayStr)
+            
+        const currentlyDue = Math.min(currentlyDueRaw || 0, commitment)
 
         // Fetch yesterday's streak
         const yesterday = new Date()
@@ -149,6 +160,10 @@ export async function POST(req: NextRequest) {
         // If nothing was due, solving this makes it green.
         const isNowGreen = (currentlyDue === 0) || (wasDue && currentlyDue === 1)
 
+        // the actual streak is re-evaluated reliably for UI using calculateTrueStreak,
+        // but we'll try to keep this table semi-accurate.
+        const newStreak = isNowGreen ? await calculateTrueStreak(user_id, todayStr) + 1 : 0
+
         await supabaseAdmin
             .from('daily_activity_summary')
             .insert({
@@ -157,7 +172,7 @@ export async function POST(req: NextRequest) {
                 reviews_due: currentlyDue || 0,
                 reviews_solved: wasDue ? 1 : 0,
                 new_solved: wasDue ? 0 : 1,
-                streak: isNowGreen ? baseStreak + 1 : 0
+                streak: newStreak
             })
     } else {
         const newReviewsSolved = wasDue ? todaySummary.reviews_solved + 1 : todaySummary.reviews_solved
@@ -171,16 +186,9 @@ export async function POST(req: NextRequest) {
         // Recover streak if it was 0 today but now becomes green
         let finalStreak = todaySummary.streak
         if (isNowGreen && todaySummary.streak === 0) {
-            const yesterday = new Date()
-            yesterday.setDate(yesterday.getDate() - 1)
-            const yesterdayStr = yesterday.toISOString().split('T')[0]
-            const { data: yesterdaySummary } = await supabaseAdmin
-                .from('daily_activity_summary')
-                .select('streak')
-                .eq('user_id', user_id)
-                .eq('date', yesterdayStr)
-                .single()
-            finalStreak = (yesterdaySummary?.streak || 0) + 1
+            // Recalculate true streak base
+            const trueBase = await calculateTrueStreak(user_id, todayStr)
+            finalStreak = trueBase
         }
 
         await supabaseAdmin
