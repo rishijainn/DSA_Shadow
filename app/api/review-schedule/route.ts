@@ -25,14 +25,33 @@ export async function GET(req: NextRequest) {
     
     const commitment = settings?.daily_commitment || 3
 
-    // Get problems due for review today
-    const { data: dueProblems, error } = await supabaseAdmin
-        .from('problem_scores')
-        .select('*')
+    // Check how many reviews the user has already solved today
+    const { data: todaySummary } = await supabaseAdmin
+        .from('daily_activity_summary')
+        .select('reviews_solved')
         .eq('user_id', user_id)
-        .lte('next_review_date', today)
-        .order('next_review_date', { ascending: true })
-        .limit(commitment)
+        .eq('date', today)
+        .single()
+    
+    const reviewsSolvedToday = todaySummary?.reviews_solved || 0
+    const effectiveLimit = Math.max(0, commitment - reviewsSolvedToday)
+
+    // Get problems due for review today
+    let dueProblems: any[] = []
+    let error = null
+    
+    if (effectiveLimit > 0) {
+        const { data, error: fetchError } = await supabaseAdmin
+            .from('problem_scores')
+            .select('*')
+            .eq('user_id', user_id)
+            .lte('next_review_date', today)
+            .order('next_review_date', { ascending: true })
+            .limit(effectiveLimit)
+        
+        dueProblems = data || []
+        error = fetchError
+    }
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
