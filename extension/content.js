@@ -429,6 +429,10 @@ function showPopup(problemTitle) {
             toast.innerHTML = `<div style="position:fixed;bottom:24px;right:24px;background:#22c55e;color:white;padding:12px 20px;border-radius:12px;z-index:999999;font-family:Arial,sans-serif;font-weight:bold;">✅ Logged to DSA Shadow!</div>`;
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
+          } else {
+            // Unknown error — reset button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
           }
         } catch (err) {
           alert("Error logging submission. Is the server running?");

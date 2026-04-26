@@ -56,7 +56,10 @@ export async function POST(req: NextRequest) {
     if (currentTotal >= commitment) {
         return NextResponse.json({
             error: 'limit_reached',
-            message: `Daily limit of ${commitment} reached. Come back tomorrow!`
+            message: `Daily limit of ${commitment} reached. Come back tomorrow!`,
+            total_solved: currentTotal,
+            daily_limit: commitment,
+            remaining_reviews: 0
         }, { status: 429, headers })
     }
 
@@ -85,7 +88,10 @@ export async function POST(req: NextRequest) {
     if (!isReviewProblem && remainingReviews > 0 && newAllowed <= 0) {
         return NextResponse.json({
             error: 'reviews_pending',
-            message: `You have ${remainingReviews} review(s) to complete first!`
+            message: `You have ${remainingReviews} review(s) to complete first!`,
+            total_solved: currentTotal,
+            daily_limit: commitment,
+            remaining_reviews: remainingReviews
         }, { status: 429, headers })
     }
 
