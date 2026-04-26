@@ -23,6 +23,7 @@ export default function Dashboard() {
     const [user, setUser] = useState<any>(null)
     const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'explore' | 'vault'>('overview')
     const [dueProblems, setDueProblems] = useState<ProblemScore[]>([])
+    const [suggestions, setSuggestions] = useState<any[]>([])
     const [solvedToday, setSolvedToday] = useState<any[]>([])
     const [allProblems, setAllProblems] = useState<ProblemScore[]>([])
     const [loading, setLoading] = useState(true)
@@ -31,11 +32,18 @@ export default function Dashboard() {
     const router = useRouter()
 
     const fetchData = useCallback(async (userId: string) => {
-        const res = await fetch(`/api/review-schedule?user_id=${userId}`, { cache: 'no-store' })
-        const data = await res.json()
-        setDueProblems(data.problems_due || [])
-        setSolvedToday(data.solved_today || [])
-        setAllProblems(data.all_problems || [])
+        const [reviewRes, suggestRes] = await Promise.all([
+            fetch(`/api/review-schedule?user_id=${userId}`, { cache: 'no-store' }),
+            fetch(`/api/daily-suggestions?user_id=${userId}`, { cache: 'no-store' })
+        ])
+        
+        const reviewData = await reviewRes.json()
+        const suggestData = await suggestRes.json()
+        
+        setDueProblems(reviewData.problems_due || [])
+        setSolvedToday(reviewData.solved_today || [])
+        setAllProblems(reviewData.all_problems || [])
+        setSuggestions(suggestData.suggestions || [])
     }, [])
 
     useEffect(() => {
@@ -179,7 +187,15 @@ export default function Dashboard() {
                 <div className="flex-1 overflow-y-auto w-full p-10 pb-16">
                     <div className="max-w-6xl mx-auto">
                         {activeTab === 'explore' && <ProblemExplorer key={`explore-${syncKey}`} userId={user?.id} allProblems={allProblems} />}
-                        {activeTab === 'overview' && <Overview key={`overview-${syncKey}`} dueProblems={dueProblems} allProblems={allProblems} userId={user?.id} />}
+                        {activeTab === 'overview' && (
+                            <Overview 
+                                key={`overview-${syncKey}`} 
+                                dueProblems={dueProblems} 
+                                suggestions={suggestions}
+                                allProblems={allProblems} 
+                                userId={user?.id} 
+                            />
+                        )}
                         {activeTab === 'insights' && <MasteryInsights key={`insights-${syncKey}`} userId={user?.id} />}
                         {activeTab === 'vault' && <SolvedVault key={`vault-${syncKey}`} userId={user?.id} />}
                     </div>

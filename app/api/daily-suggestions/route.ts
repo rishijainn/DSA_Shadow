@@ -175,12 +175,16 @@ export async function GET(req: NextRequest) {
         const difficulty = difficultyMix[i]
 
         // Get random problem of required difficulty not already suggested
-        const { data: candidates } = await supabaseAdmin
+        let query = supabaseAdmin
             .from('problems')
             .select('*')
             .eq('difficulty', difficulty)
-            .not('title_slug', 'in', `(${excludeIds.map(id => `"${id}"`).join(',')})`)
-            .limit(50)
+        
+        if (excludeIds.length > 0) {
+            query = query.not('title_slug', 'in', `(${excludeIds.map(id => `"${id}"`).join(',')})`)
+        }
+
+        const { data: candidates } = await query.limit(50)
 
         if (!candidates || candidates.length === 0) continue
 
