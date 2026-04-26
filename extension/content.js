@@ -114,19 +114,145 @@ async function checkForSubmission() {
   );
 
   if (chrome.runtime?.id) {
-    chrome.storage.local.set(
-      {
-        pendingSubmission: {
-          problem_id: problemId,
-          problem_title: problemTitle,
-        },
-      },
-      () => {
-        if (chrome.runtime.lastError) return;
-        showPopup(problemTitle);
-      },
-    );
+    chrome.storage.local.get(["dsa_user_id"], async (data) => {
+      if (!data.dsa_user_id) {
+        // No user signed in, just store and show normal popup
+        chrome.storage.local.set(
+          {
+            pendingSubmission: {
+              problem_id: problemId,
+              problem_title: problemTitle,
+            },
+          },
+          () => {
+            if (chrome.runtime.lastError) return;
+            showPopup(problemTitle);
+          },
+        );
+        return;
+      }
+
+      // Check daily limit before showing popup
+      try {
+        const limitRes = await fetch(
+          `https://dsa-shadow.vercel.app/api/check-limit?user_id=${data.dsa_user_id}&problem_id=${problemId}`,
+        );
+        const limitData = await limitRes.json();
+
+        if (!limitData.allowed) {
+          // Show limit popup instead of submission popup
+          showLimitPopup(limitData);
+          return;
+        }
+
+        // Allowed — store and show normal popup
+        chrome.storage.local.set(
+          {
+            pendingSubmission: {
+              problem_id: problemId,
+              problem_title: problemTitle,
+            },
+          },
+          () => {
+            if (chrome.runtime.lastError) return;
+            showPopup(problemTitle);
+          },
+        );
+      } catch (err) {
+        console.error("DSA Shadow: Limit check failed, showing popup anyway", err);
+        // Fallback: show popup if API is unreachable
+        chrome.storage.local.set(
+          {
+            pendingSubmission: {
+              problem_id: problemId,
+              problem_title: problemTitle,
+            },
+          },
+          () => {
+            if (chrome.runtime.lastError) return;
+            showPopup(problemTitle);
+          },
+        );
+      }
+    });
   }
+}
+
+function showLimitPopup(limitData) {
+  document.getElementById("dsa-shadow-popup")?.remove();
+
+  const isLimitReached = limitData.total_solved >= limitData.daily_limit;
+  const emoji = isLimitReached ? "🌙" : "🧠";
+  const title = isLimitReached ? "Daily Limit Reached" : "Reviews Pending";
+  const accentColor = isLimitReached ? "#f59e0b" : "#ef4444";
+  const bgGradient = isLimitReached
+    ? "linear-gradient(135deg, #1a1520, #1e1e2e)"
+    : "linear-gradient(135deg, #1a1215, #1e1e2e)";
+
+  const statsHTML = `
+    <div style="display: flex; gap: 6px; margin-bottom: 14px;">
+      <div style="flex:1; text-align:center; padding: 8px 4px; background: rgba(255,255,255,0.04); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+        <div style="font-size: 18px; font-weight: bold; color: ${accentColor};">${limitData.total_solved}</div>
+        <div style="font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Solved</div>
+      </div>
+      <div style="flex:1; text-align:center; padding: 8px 4px; background: rgba(255,255,255,0.04); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+        <div style="font-size: 18px; font-weight: bold; color: #3b82f6;">${limitData.daily_limit}</div>
+        <div style="font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Limit</div>
+      </div>
+      <div style="flex:1; text-align:center; padding: 8px 4px; background: rgba(255,255,255,0.04); border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+        <div style="font-size: 18px; font-weight: bold; color: #ef4444;">${limitData.remaining_reviews}</div>
+        <div style="font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Reviews</div>
+      </div>
+    </div>
+  `;
+
+  const popup = document.createElement("div");
+  popup.id = "dsa-shadow-popup";
+  popup.innerHTML = `
+    <div style="
+      position: fixed; bottom: 24px; right: 24px;
+      background: ${bgGradient}; color: white;
+      padding: 22px; border-radius: 16px;
+      width: 310px; z-index: 999999;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      border: 1px solid ${accentColor}33;
+      animation: dsa-slide-in 0.3s ease;
+    ">
+      <style>
+        @keyframes dsa-slide-in {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      </style>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <div style="font-size: 36px; margin-bottom: 6px;">${emoji}</div>
+        <div style="font-weight: bold; font-size: 16px; color: ${accentColor};">${title}</div>
+      </div>
+
+      ${statsHTML}
+
+      <div style="
+        font-size: 12px; color: #ccc; text-align: center;
+        line-height: 1.5; margin-bottom: 16px;
+        padding: 10px; background: rgba(255,255,255,0.03);
+        border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
+      ">${limitData.message}</div>
+
+      <button id="dsa-limit-dismiss" style="
+        width: 100%; padding: 10px;
+        background: ${accentColor}; color: #000;
+        border: none; border-radius: 8px;
+        font-weight: bold; cursor: pointer; font-size: 13px;
+        transition: opacity 0.2s;
+      ">Got it</button>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  document.getElementById("dsa-limit-dismiss").addEventListener("click", () => {
+    document.getElementById("dsa-shadow-popup")?.remove();
+  });
 }
 
 function showPopup(problemTitle) {
@@ -275,6 +401,19 @@ function showPopup(problemTitle) {
           );
 
           const result = await res.json();
+
+          // Handle server-side limit rejection (defense in depth)
+          if (res.status === 429) {
+            document.getElementById("dsa-shadow-popup")?.remove();
+            showLimitPopup({
+              total_solved: result.total_solved || 0,
+              daily_limit: result.daily_limit || 0,
+              remaining_reviews: result.remaining_reviews || 0,
+              message: result.message || "Daily limit reached.",
+            });
+            return;
+          }
+
           if (result.success) {
             await fetch("https://dsa-shadow.vercel.app/api/mark-complete", {
               method: "POST",

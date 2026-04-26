@@ -34,6 +34,88 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Missing fields' }, { status: 400, headers })
     }
 
+    const todayStr = new Date().toISOString().split('T')[0]
+
+    // ── DAILY LIMIT GUARD ──
+    // Enforce hard cap: reviews_solved + new_solved must not exceed daily_commitment
+    const { data: settings } = await supabaseAdmin
+        .from('user_settings')
+        .select('daily_commitment')
+        .eq('id', user_id)
+        .single()
+    const commitment = settings?.daily_commitment || 3
+
+    const { data: todayCheck } = await supabaseAdmin
+        .from('daily_activity_summary')
+        .select('reviews_solved, new_solved')
+        .eq('user_id', user_id)
+        .eq('date', todayStr)
+        .single()
+
+    const currentTotal = (todayCheck?.reviews_solved || 0) + (todayCheck?.new_solved || 0)
+    if (currentTotal >= commitment) {
+        return NextResponse.json({
+            error: 'limit_reached',
+            message: `Daily limit of ${commitment} reached. Come back tomorrow!`
+        }, { status: 429, headers })
+    }
+
+    // Check if this is a review problem
+    const { data: existingCheck } = await supabaseAdmin
+        .from('problem_scores')
+        .select('next_review_date')
+        .eq('user_id', user_id)
+        .eq('problem_id', problem_id)
+        .single()
+
+    const isReviewProblem = existingCheck && existingCheck.next_review_date <= todayStr
+
+    // Count remaining reviews (capped at commitment)
+    const { count: rawDue } = await supabaseAdmin
+        .from('problem_scores')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user_id)
+        .lte('next_review_date', todayStr)
+
+    const reviewsDueCapped = Math.min(rawDue || 0, commitment)
+    const remainingReviews = Math.max(0, reviewsDueCapped - (todayCheck?.reviews_solved || 0))
+    const newAllowed = Math.max(0, commitment - remainingReviews - currentTotal)
+
+    // Block new problems when reviews are pending and no new slots available
+    if (!isReviewProblem && remainingReviews > 0 && newAllowed <= 0) {
+        return NextResponse.json({
+            error: 'reviews_pending',
+            message: `You have ${remainingReviews} review(s) to complete first!`
+        }, { status: 429, headers })
+    }
+
+    // ── SHIFT EXCESS REVIEWS ──
+    // If total reviews due exceed commitment, push excess to tomorrow
+    if ((rawDue || 0) > commitment) {
+        // Get all due reviews ordered by date, skip the ones within limit
+        const { data: allDueReviews } = await supabaseAdmin
+            .from('problem_scores')
+            .select('problem_id, next_review_date')
+            .eq('user_id', user_id)
+            .lte('next_review_date', todayStr)
+            .order('next_review_date', { ascending: true })
+
+        if (allDueReviews && allDueReviews.length > commitment) {
+            const excessReviews = allDueReviews.slice(commitment)
+            const tomorrow = new Date()
+            tomorrow.setDate(tomorrow.getDate() + 1)
+            const tomorrowStr = tomorrow.toISOString().split('T')[0]
+
+            for (const excess of excessReviews) {
+                await supabaseAdmin
+                    .from('problem_scores')
+                    .update({ next_review_date: tomorrowStr })
+                    .eq('user_id', user_id)
+                    .eq('problem_id', excess.problem_id)
+            }
+        }
+    }
+
     // 1. Log submission
     const { error: submissionError } = await supabaseAdmin
         .from('submissions')
@@ -112,10 +194,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Update Daily Activity Summary (Consistency & Streaks)
-    const todayStr = new Date().toISOString().split('T')[0]
     const wasDue = existing && existing.next_review_date <= todayStr
 
-    // Fetch or create today's summary
+    // Fetch or create today's summary (re-fetch since submission was just inserted)
     const { data: todaySummary } = await supabaseAdmin
         .from('daily_activity_summary')
         .select('*')
@@ -124,22 +205,8 @@ export async function POST(req: NextRequest) {
         .single()
 
     if (!todaySummary) {
-        // Get user setting limit
-        const { data: settings } = await supabaseAdmin
-            .from('user_settings')
-            .select('daily_commitment')
-            .eq('id', user_id)
-            .single()
-        const commitment = settings?.daily_commitment || 3
-
-        // Calculate reviews due for the day at the moment of first activity
-        const { count: currentlyDueRaw } = await supabaseAdmin
-            .from('problem_scores')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user_id)
-            .lte('next_review_date', todayStr)
-            
-        const currentlyDue = Math.min(currentlyDueRaw || 0, commitment)
+        // Reviews due capped at commitment (already computed above as reviewsDueCapped)
+        const currentlyDue = reviewsDueCapped
 
         // Fetch yesterday's streak
         const yesterday = new Date()

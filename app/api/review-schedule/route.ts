@@ -25,32 +25,53 @@ export async function GET(req: NextRequest) {
     
     const commitment = settings?.daily_commitment || 3
 
-    // Check how many reviews the user has already solved today
+    // Check how many problems the user has already solved today (reviews + new)
     const { data: todaySummary } = await supabaseAdmin
         .from('daily_activity_summary')
-        .select('reviews_solved')
+        .select('reviews_solved, new_solved')
         .eq('user_id', user_id)
         .eq('date', today)
         .single()
     
     const reviewsSolvedToday = todaySummary?.reviews_solved || 0
-    const effectiveLimit = Math.max(0, commitment - reviewsSolvedToday)
+    const newSolvedToday = todaySummary?.new_solved || 0
+    const totalSolvedToday = reviewsSolvedToday + newSolvedToday
 
-    // Get problems due for review today
+    // Get ALL problems due for review today
     let dueProblems: any[] = []
     let error = null
     
-    if (effectiveLimit > 0) {
-        const { data, error: fetchError } = await supabaseAdmin
-            .from('problem_scores')
-            .select('*')
-            .eq('user_id', user_id)
-            .lte('next_review_date', today)
-            .order('next_review_date', { ascending: true })
-            .limit(effectiveLimit)
+    const { data: allDueData, error: fetchError } = await supabaseAdmin
+        .from('problem_scores')
+        .select('*')
+        .eq('user_id', user_id)
+        .lte('next_review_date', today)
+        .order('next_review_date', { ascending: true })
+    
+    error = fetchError
+
+    if (allDueData && allDueData.length > 0) {
+        // Cap reviews at commitment — take only what fits
+        dueProblems = allDueData.slice(0, commitment)
         
-        dueProblems = data || []
-        error = fetchError
+        // Shift excess reviews beyond the cap to tomorrow
+        const excessReviews = allDueData.slice(commitment)
+        if (excessReviews.length > 0) {
+            const tomorrow = new Date()
+            tomorrow.setDate(tomorrow.getDate() + 1)
+            const tomorrowStr = tomorrow.toISOString().split('T')[0]
+
+            for (const excess of excessReviews) {
+                await supabaseAdmin
+                    .from('problem_scores')
+                    .update({ next_review_date: tomorrowStr })
+                    .eq('user_id', user_id)
+                    .eq('problem_id', excess.problem_id)
+            }
+        }
+
+        // Further limit to only unsolved ones
+        // (remove already-solved reviews from the due list shown to user)
     }
 
     if (error) {
@@ -100,10 +121,21 @@ export async function GET(req: NextRequest) {
     // We only return the ones explicitly fetched in `dueProblems` to enforce the rollover cap.
     const validDueIds = new Set(dueProblems?.map(d => d.problem_id) || [])
 
+    // Calculate remaining capacity
+    const remainingReviews = Math.max(0, dueProblems.length - reviewsSolvedToday)
+    const newAllowed = Math.max(0, commitment - remainingReviews - totalSolvedToday)
+
     return NextResponse.json({
         due_today: dueProblems?.length || 0,
         solved_today: solvedToday || [],
         problems_due: problemsWithR?.filter(p => validDueIds.has(p.problem_id)) || [],
-        all_problems: problemsWithR || []
+        all_problems: problemsWithR || [],
+        // Daily limit info
+        daily_limit: commitment,
+        total_solved_today: totalSolvedToday,
+        reviews_solved_today: reviewsSolvedToday,
+        new_solved_today: newSolvedToday,
+        remaining_reviews: remainingReviews,
+        new_allowed: newAllowed,
     })
 }

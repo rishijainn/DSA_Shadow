@@ -69,7 +69,10 @@ export async function GET(req: NextRequest) {
         .eq('suggested_date', yesterdayStr)
         .eq('status', 'pending')
 
-    const rolledOver = unsolved || []
+    const allRolledOver = unsolved || []
+    // Cap rollovers at commitment — excess stay as yesterday's pending (will be handled below)
+    const rolledOver = allRolledOver.slice(0, commitment)
+    const excessRollovers = allRolledOver.slice(commitment)
 
     // Update rolled over status and apply neglect penalty
     for (const problem of rolledOver) {
@@ -96,7 +99,27 @@ export async function GET(req: NextRequest) {
             .eq('id', problem.id)
     }
 
-    // 4. How many new slots remain
+    // Shift excess rollovers to tomorrow (they exceed today's capacity)
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrowStr = tomorrow.toISOString().split('T')[0]
+
+    for (const excess of excessRollovers) {
+        // Push suggestion to tomorrow
+        await supabaseAdmin
+            .from('daily_suggestions')
+            .update({ suggested_date: tomorrowStr })
+            .eq('id', excess.id)
+
+        // Also push the problem_scores next_review_date to tomorrow
+        await supabaseAdmin
+            .from('problem_scores')
+            .update({ next_review_date: tomorrowStr })
+            .eq('user_id', user_id)
+            .eq('problem_id', excess.problem_id)
+    }
+
+    // 4. How many new slots remain (never exceed commitment)
     const slotsRemaining = Math.max(0, commitment - rolledOver.length)
 
     // 5. Get all already suggested problem ids to avoid repeats
@@ -107,16 +130,27 @@ export async function GET(req: NextRequest) {
 
     const excludeIds = allSuggested?.map(s => s.problem_id) || []
 
-    // 6. Get problems due for review first
-    const { data: reviewsDue } = await supabaseAdmin
+    // 6. Get problems due for review first — capped at remaining slots
+    const { data: allDueReviews } = await supabaseAdmin
         .from('problem_scores')
         .select('*')
         .eq('user_id', user_id)
         .lte('next_review_date', today)
         .order('next_review_date', { ascending: true })
-        .limit(slotsRemaining)
 
-    const reviews = reviewsDue || []
+    const allDue = allDueReviews || []
+    // Only take reviews that fit within remaining slots
+    const reviews = allDue.slice(0, slotsRemaining)
+    // Shift excess reviews beyond the limit to tomorrow
+    const excessReviews = allDue.slice(slotsRemaining)
+
+    for (const excess of excessReviews) {
+        await supabaseAdmin
+            .from('problem_scores')
+            .update({ next_review_date: tomorrowStr })
+            .eq('user_id', user_id)
+            .eq('problem_id', excess.problem_id)
+    }
 
     // Insert review problems
     for (const review of reviews) {
