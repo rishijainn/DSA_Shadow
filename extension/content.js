@@ -14,7 +14,8 @@ document.addEventListener("click", (e) => {
 });
 
 // === Session Sync Logic ===
-if (location.hostname === "localhost") {
+const syncHosts = ["localhost", "dsa-shadow.vercel.app"];
+if (syncHosts.includes(location.hostname)) {
   const syncSession = () => {
     if (!chrome.runtime?.id) return;
     const sessionEl = document.getElementById("dsa-shadow-session");
