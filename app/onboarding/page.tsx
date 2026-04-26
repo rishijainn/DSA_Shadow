@@ -250,7 +250,7 @@ export default function Onboarding() {
             <p className="text-[13px] text-white/40 font-['Space_Mono'] leading-relaxed mb-5">
               // optional — skip with empty field<br />prevents duplicate suggestions
             </p>
-
+ 
             <input type="text" placeholder="your_leetcode_username"
               value={username} onChange={e => setUsername(e.target.value)}
               className="w-full bg-white/[0.03] border border-white/8 rounded-xl px-4 py-3.5 text-white font-['Space_Mono'] text-sm outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 placeholder-white/20 transition-all mb-2"
