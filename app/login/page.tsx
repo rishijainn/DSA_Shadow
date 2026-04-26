@@ -16,6 +16,16 @@ export default function LoginPage() {
     const [success, setSuccess] = useState('')
     const canvasRef = useRef<HTMLCanvasElement>(null)
 
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                window.location.href = '/dashboard'
+            }
+        }
+        checkUser()
+    }, [])
+
     // Particle canvas background
     useEffect(() => {
         const canvas = canvasRef.current

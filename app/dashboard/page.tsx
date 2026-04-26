@@ -50,6 +50,19 @@ export default function Dashboard() {
         const init = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) { router.push('/login'); return }
+            
+            // Check onboarding status
+            const { data: settings } = await supabase
+                .from('user_settings')
+                .select('onboarding_complete')
+                .eq('id', user.id)
+                .single()
+            
+            if (!settings?.onboarding_complete) {
+                router.push('/onboarding')
+                return
+            }
+
             setUser(user)
             await fetchData(user.id)
             setLoading(false)

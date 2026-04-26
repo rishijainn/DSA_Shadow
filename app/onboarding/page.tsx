@@ -20,6 +20,28 @@ export default function Onboarding() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const router = useRouter()
 
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      // If already onboarded, go to dashboard
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('onboarding_complete')
+        .eq('id', user.id)
+        .single()
+
+      if (settings?.onboarding_complete) {
+        router.push('/dashboard')
+      }
+    }
+    checkUser()
+  }, [router])
+
   // Particle network background
   useEffect(() => {
     const canvas = canvasRef.current
